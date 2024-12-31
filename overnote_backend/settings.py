@@ -77,9 +77,13 @@ WSGI_APPLICATION = "overnote_backend.wsgi.application"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'overnote_db',  # Replace with your database name
+        'USER': 'ericlantz', # Replace with your PostgreSQL username
+        'PASSWORD': 'Matthew!2', # Replace with your PostgreSQL password
+        'HOST': 'localhost',   # Or the hostname of your PostgreSQL server
+        'PORT': '5432',        # Default PostgreSQL port
     }
 }
 
