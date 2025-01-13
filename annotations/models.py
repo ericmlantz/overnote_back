@@ -33,7 +33,7 @@ class Annotation(models.Model):
     annotation_type = models.CharField(max_length=10, choices=ANNOTATION_TYPES)
     content = models.TextField(blank=True, null=True) # For text annotations or drawing data
     image = models.ImageField(upload_to='annotations/', blank=True, null=True) # For image annotations
-    position = models.JSONField() # Store position/coordinates (e.g., {'x': 100, 'y': 200})
+    position = models.JSONField(null=True, blank=True) # Store position/coordinates (e.g., {'x': 100, 'y': 200})
     context = models.ForeignKey(AnnotationContext, on_delete=models.CASCADE, related_name="annotation")
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Optional user association
     created_at = models.DateTimeField(auto_now_add=True)
