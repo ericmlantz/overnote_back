@@ -38,6 +38,7 @@ class Annotation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)  # Optional user association
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    order = models.IntegerField(default=0)
     
     def __str__(self):
         return f"{self.annotation_type} - {self.context.identifier}"

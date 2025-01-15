@@ -8,8 +8,8 @@ def get_notes(request):
     context_identifier = request.GET.get('context', None)
     try:
         if context_identifier:
-            # Filter annotations based on the related AnnotationContext identifier
-            annotations = Annotation.objects.filter(context__identifier=context_identifier)
+            # Filter annotations based on the related AnnotationContext identifier and order them
+            annotations = Annotation.objects.filter(context__identifier=context_identifier).order_by('order')
         else:
             return JsonResponse({"error": "Context is required"}, status=400)
         
@@ -18,8 +18,8 @@ def get_notes(request):
             {
                 "id": annotation.id,
                 "content": annotation.content,
-                "annotation_type": annotation.annotation_type,
-                "position": annotation.position,
+                "annotation_type": annotation.annotation_type if hasattr(annotation, 'annotation_type') else None,
+                "position": annotation.order,  # Use the order field for position
                 "context": annotation.context.identifier,
             }
             for annotation in annotations
@@ -47,10 +47,10 @@ def update_all_notes(request):
             # Clear existing notes for the context
             Annotation.objects.filter(context=annotation_context).delete()
 
-            # Create new notes
-            for content in notes:
+            # Create new notes with the correct order
+            for idx, content in enumerate(notes):
                 if content.strip():  # Avoid saving empty notes
-                    Annotation.objects.create(content=content, context=annotation_context)
+                    Annotation.objects.create(content=content, context=annotation_context, order=idx)
 
             return JsonResponse({"status": "success"})
         except Exception as e:
