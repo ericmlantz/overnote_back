@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Annotation, AnnotationContext
+from html import unescape
 import json
 
 @csrf_exempt
@@ -12,12 +13,12 @@ def get_notes(request):
             annotations = Annotation.objects.filter(context__identifier=context_identifier).order_by('order')
         else:
             return JsonResponse({"error": "Context is required"}, status=400)
-        
-        # Serialize the annotations
+
+        # Serialize the annotations, decoding content to ensure proper rendering
         annotations_data = [
             {
                 "id": annotation.id,
-                "content": annotation.content,
+                "content": unescape(annotation.content.strip()),  # Decode HTML entities
                 "annotation_type": annotation.annotation_type if hasattr(annotation, 'annotation_type') else None,
                 "position": annotation.order,  # Use the order field for position
                 "context": annotation.context.identifier,
@@ -33,7 +34,7 @@ def update_all_notes(request):
     if request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            notes = data.get("notes", [])
+            notes = data.get("notes", [])  # Expect HTML content
             context_identifier = data.get("context", None)
 
             if not context_identifier:
@@ -50,7 +51,8 @@ def update_all_notes(request):
             # Create new notes with the correct order
             for idx, content in enumerate(notes):
                 if content.strip():  # Avoid saving empty notes
-                    Annotation.objects.create(content=content, context=annotation_context, order=idx)
+                    decoded_content = unescape(content)  # Decode HTML entities before saving
+                    Annotation.objects.create(content=decoded_content, context=annotation_context, order=idx)
 
             return JsonResponse({"status": "success"})
         except Exception as e:
