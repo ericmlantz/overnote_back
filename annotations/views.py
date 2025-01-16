@@ -39,10 +39,10 @@ def update_all_notes(request):
             if not context_identifier:
                 return JsonResponse({"error": "Context is required"}, status=400)
 
-            # Get the related AnnotationContext object
-            annotation_context = AnnotationContext.objects.filter(identifier=context_identifier).first()
-            if not annotation_context:
-                return JsonResponse({"error": f"Context '{context_identifier}' not found"}, status=404)
+            # Get or create the related AnnotationContext object
+            annotation_context, created = AnnotationContext.objects.get_or_create(
+                identifier=context_identifier
+            )
 
             # Clear existing notes for the context
             Annotation.objects.filter(context=annotation_context).delete()
