@@ -29,12 +29,41 @@ def get_notes(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
     
+# @csrf_exempt
+# def update_all_notes(request):
+#     if request.method == 'PUT':
+#         try:
+#             data = json.loads(request.body)
+#             notes = data.get("notes", [])  # Expect HTML content
+#             context_identifier = data.get("context", None)
+
+#             if not context_identifier:
+#                 return JsonResponse({"error": "Context is required"}, status=400)
+
+#             # Get or create the related AnnotationContext object
+#             annotation_context, created = AnnotationContext.objects.get_or_create(
+#                 identifier=context_identifier
+#             )
+
+#             # Clear existing notes for the context
+#             Annotation.objects.filter(context=annotation_context).delete()
+
+#             # Create new notes with the correct order
+#             for idx, content in enumerate(notes):
+#                 if content.strip():  # Avoid saving empty notes
+#                     decoded_content = unescape(content)  # Decode HTML entities before saving
+#                     Annotation.objects.create(content=decoded_content, context=annotation_context, order=idx)
+
+#             return JsonResponse({"status": "success"})
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=400)
+
 @csrf_exempt
 def update_all_notes(request):
     if request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            notes = data.get("notes", [])  # Expect HTML content
+            notes = data.get("notes", [])  # Expect an array of notes
             context_identifier = data.get("context", None)
 
             if not context_identifier:
@@ -45,12 +74,17 @@ def update_all_notes(request):
                 identifier=context_identifier
             )
 
+            if not notes:  # If notes array is empty, delete the context
+                annotation_context.delete()
+                return JsonResponse({"status": f"Context '{context_identifier}' deleted successfully"})
+
             # Clear existing notes for the context
             Annotation.objects.filter(context=annotation_context).delete()
 
-            # Create new notes with the correct order
+            # Create new notes with the correct order, ignoring empty ones
             for idx, content in enumerate(notes):
-                if content.strip():  # Avoid saving empty notes
+                content = content.strip()
+                if content:  # Only save non-empty notes
                     decoded_content = unescape(content)  # Decode HTML entities before saving
                     Annotation.objects.create(content=decoded_content, context=annotation_context, order=idx)
 
@@ -85,3 +119,49 @@ def save_all_notes(request):
             return JsonResponse({"status": "success"})
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
+        
+@csrf_exempt
+def get_all_notes(request):
+    try:
+        contexts = AnnotationContext.objects.all()
+        all_notes = []
+        for context in contexts:
+            annotations = Annotation.objects.filter(context=context).order_by('order')
+            notes = [
+                {
+                    "id": annotation.id,
+                    "content": annotation.content.strip(),
+                    "order": annotation.order,
+                }
+                for annotation in annotations
+            ]
+            all_notes.append({
+                "context": context.identifier,
+                "notes": notes,
+            })
+        return JsonResponse(all_notes, safe=False)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
+    
+@csrf_exempt
+def delete_note(request):
+    if request.method == 'DELETE':
+        try:
+            data = json.loads(request.body)
+            print(f"Received DELETE request with noteId: {data.get('noteId')}")
+            
+            note_id = data.get('noteId')
+
+            if not note_id:
+                return JsonResponse({"error": "Note ID is required."}, status=400)
+
+            # Fetch and delete the note
+            note = Annotation.objects.get(id=note_id)
+            note.delete()
+            return JsonResponse({"message": "Note deleted successfully."})
+        except Annotation.DoesNotExist:
+            return JsonResponse({"error": "Note not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+    else:
+        return JsonResponse({"error": "Invalid HTTP method."}, status=405)
