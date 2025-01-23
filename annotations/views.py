@@ -58,39 +58,78 @@ def get_notes(request):
 #         except Exception as e:
 #             return JsonResponse({"error": str(e)}, status=400)
 
+# @csrf_exempt
+# def update_all_notes(request):
+#     if request.method == 'PUT':
+#         try:
+#             data = json.loads(request.body)
+#             notes = data.get("notes", [])  # Expect an array of notes
+#             context_identifier = data.get("context", None)
+
+#             if not context_identifier:
+#                 return JsonResponse({"error": "Context is required"}, status=400)
+
+#             # Get or create the related AnnotationContext object
+#             annotation_context, created = AnnotationContext.objects.get_or_create(
+#                 identifier=context_identifier
+#             )
+
+#             if not notes:  # If notes array is empty, delete the context
+#                 annotation_context.delete()
+#                 return JsonResponse({"status": f"Context '{context_identifier}' deleted successfully"})
+
+#             # Clear existing notes for the context
+#             Annotation.objects.filter(context=annotation_context).delete()
+
+#             # Create new notes with the correct order, ignoring empty ones
+#             for idx, content in enumerate(notes):
+#                 content = content.strip()
+#                 if content:  # Only save non-empty notes
+#                     decoded_content = unescape(content)  # Decode HTML entities before saving
+#                     Annotation.objects.create(content=decoded_content, context=annotation_context, order=idx)
+
+#             return JsonResponse({"status": "success"})
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=400)
 @csrf_exempt
 def update_all_notes(request):
     if request.method == 'PUT':
         try:
             data = json.loads(request.body)
-            notes = data.get("notes", [])  # Expect an array of notes
             context_identifier = data.get("context", None)
+            notes = data.get("notes", [])
 
             if not context_identifier:
-                return JsonResponse({"error": "Context is required"}, status=400)
+                return JsonResponse({"error": "Context is required."}, status=400)
 
-            # Get or create the related AnnotationContext object
+            # Get or create the AnnotationContext object
             annotation_context, created = AnnotationContext.objects.get_or_create(
                 identifier=context_identifier
             )
 
-            if not notes:  # If notes array is empty, delete the context
+            if not notes or all(note.strip() in ['', '<p><br/></p>'] for note in notes):
+                # Delete the context if no valid notes are provided
                 annotation_context.delete()
-                return JsonResponse({"status": f"Context '{context_identifier}' deleted successfully"})
+                return JsonResponse({"status": f"Context '{context_identifier}' deleted due to empty notes."})
 
             # Clear existing notes for the context
             Annotation.objects.filter(context=annotation_context).delete()
 
-            # Create new notes with the correct order, ignoring empty ones
+            # Save new notes with correct order
             for idx, content in enumerate(notes):
                 content = content.strip()
-                if content:  # Only save non-empty notes
-                    decoded_content = unescape(content)  # Decode HTML entities before saving
-                    Annotation.objects.create(content=decoded_content, context=annotation_context, order=idx)
+                if content:  # Avoid saving empty notes
+                    Annotation.objects.create(
+                        content=unescape(content),  # Decode HTML entities before saving
+                        context=annotation_context,
+                        order=idx
+                    )
 
-            return JsonResponse({"status": "success"})
+            return JsonResponse({"status": "success", "message": f"Notes updated for context '{context_identifier}'."})
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid HTTP method. Use PUT."}, status=405)
         
 @csrf_exempt
 def save_all_notes(request):
@@ -165,3 +204,25 @@ def delete_note(request):
             return JsonResponse({"error": str(e)}, status=400)
     else:
         return JsonResponse({"error": "Invalid HTTP method."}, status=405)
+    
+@csrf_exempt
+def delete_context(request):
+    if request.method == 'DELETE':
+        try:
+            data = json.loads(request.body)
+            context_identifier = data.get("context", None)
+
+            if not context_identifier:
+                return JsonResponse({"error": "Context is required."}, status=400)
+
+            # Find and delete the context
+            annotation_context = AnnotationContext.objects.filter(identifier=context_identifier).first()
+            if annotation_context:
+                annotation_context.delete()
+                return JsonResponse({"message": f"Context '{context_identifier}' deleted successfully."})
+            else:
+                return JsonResponse({"error": f"Context '{context_identifier}' not found."}, status=404)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid HTTP method. Use DELETE."}, status=405)
