@@ -31,7 +31,7 @@ class Annotation(models.Model):
     ]
     
     annotation_type = models.CharField(max_length=10, choices=ANNOTATION_TYPES)
-    content = models.TextField(blank=True, null=True) # For text annotations or drawing data
+    content = models.TextField(blank=True, null=True)
     image = models.ImageField(upload_to='annotations/', blank=True, null=True) # For image annotations
     position = models.JSONField(null=True, blank=True) # Store position/coordinates (e.g., {'x': 100, 'y': 200})
     context = models.ForeignKey(AnnotationContext, on_delete=models.CASCADE, related_name="annotation")
@@ -39,6 +39,7 @@ class Annotation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     order = models.IntegerField(default=0)
+    metadata = models.JSONField(blank=True, null=True)  # Optional metadata (e.g., tags, timestamp)
     
     def __str__(self):
         return f"{self.annotation_type} - {self.context.identifier}"
