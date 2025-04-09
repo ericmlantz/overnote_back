@@ -1,0 +1,3 @@
+-- Just tag extension postgis version as "ANY"
+-- Installed by postgis 3.5.2
+-- Built on 2025-02-19 15:37:22

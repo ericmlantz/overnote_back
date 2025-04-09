@@ -1,0 +1,3 @@
+-- Just tag extension address_standardizer version as "ANY"
+-- Installed by address_standardizer 3.5.2
+-- Built on 2025-02-19 15:37:23

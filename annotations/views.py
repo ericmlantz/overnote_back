@@ -1,9 +1,9 @@
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Annotation, AnnotationContext
 from html import unescape
 import json
 import requests
+from django.http import JsonResponse
 from bs4 import BeautifulSoup
 
 def is_empty_html(html):
